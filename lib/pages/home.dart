@@ -1,110 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import '../requests.dart';
-import '../main.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required this.title});
+
+  // This widget is the home page of your application. It is stateful, meaning
+  // that it has a State object (defined below) that contains fields that affect
+  // how it looks.
+
+  // This class is the configuration for the state. It holds the values (in this
+  // case the title) provided by the parent (in this case the App widget) and
+  // used by the build method of the State. Fields in a Widget subclass are
+  // always marked "final".
+
+  final String title;
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Center(
-              // Centrer le Container
-              child: Image.asset(
-                'assets/images/booster.png', // Chemin de l'image
-              ),
-            ),
-          ),
-          SizedBox(height: 20),
-          BoosterButton(),
-          SizedBox(height: 20),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
+  State<HomePage> createState() => _HomePage();
 }
 
-class BoosterButton extends StatefulWidget {
-  @override
-  _BoosterButtonState createState() => _BoosterButtonState();
-}
+class _HomePage extends State<HomePage> {
+  int _counter = 0;
 
-class _BoosterButtonState extends State<BoosterButton> {
-  int _secondsRemaining = 0;
-  Timer? _timer;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeAsyncData();
-    startTimer();
-  }
-
-  Future<void> _initializeAsyncData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final next = prefs.getInt('next_booster') ?? 0;
-
-    final int timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round();;
-    if (timestamp > next!) {
-      setState(() {
-        _secondsRemaining = 0; // Save the username
-      });
-    } else {
-      setState(() {
-        _secondsRemaining = next - timestamp; // Save the username
-      });
-    }
-  }
-
-  // Fonction pour démarrer le timer
-  void startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        } else {
-          _timer?.cancel();
-          // Envoyer la notification quand le timer atteint 0
-        }
-      });
+  void _incrementCounter() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      _counter++;
     });
   }
 
-  String _formatTime(int totalSeconds) {
-    final hours = totalSeconds ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-    final seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m ${seconds}s';
-    } else if (minutes > 0) {
-      return '${minutes}m ${seconds}s';
-    } else {
-      return '${seconds}s';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final defaultColor = Theme.of(context).colorScheme.primaryContainer;
-      return FloatingActionButton.extended(
-        onPressed: () async {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Attendez que le timer soit à zéro !"),
-              backgroundColor: Colors.red,
+    // This method is rerun every time setState is called, for instance as done
+    // by the _incrementCounter method above.
+    //
+    // The Flutter framework has been optimized to make rerunning build methods
+    // fast, so that you can just rebuild anything that needs updating rather
+    // than having to individually change instances of widgets.
+    return Scaffold(
+      appBar: AppBar(
+        // TRY THIS: Try changing the color here to a specific color (to
+        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
+        // change color while the other colors stay the same.
+        backgroundColor: Theme
+            .of(context)
+            .colorScheme
+            .inversePrimary,
+        // Here we take the value from the MyHomePage object that was created by
+        // the App.build method, and use it to set our appbar title.
+        title: Text(widget.title),
+      ),
+      body: Center(
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        child: Column(
+          // Column is also a layout widget. It takes a list of children and
+          // arranges them vertically. By default, it sizes itself to fit its
+          // children horizontally, and tries to be as tall as its parent.
+          //
+          // Column has various properties to control how it sizes itself and
+          // how it positions its children. Here we use mainAxisAlignment to
+          // center the children vertically; the main axis here is the vertical
+          // axis because Columns are vertical (the cross axis would be
+          // horizontal).
+          //
+          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
+          // action in the IDE, or press "p" in the console), to see the
+          // wireframe for each widget.
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text('You have pushed the button this many times:'),
+            Text(
+              '$_counter',
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .headlineMedium,
             ),
-          );
-        },
-        label: Text('Ouvrir le booster'),
-        icon: Icon(Icons.signal_wifi_connected_no_internet_4_rounded),
-        backgroundColor: Colors.grey,
-      );
-    }
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
   }
+}

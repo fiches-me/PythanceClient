@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'pages/home.dart';
 
 class NavigationBarPage extends StatefulWidget {
+  const NavigationBarPage({super.key});
+
   @override
   _NavigationBarPageState createState() => _NavigationBarPageState();
 }
@@ -12,7 +14,7 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
 
   // Liste des pages avec plusieurs widgets
   final List<Widget> _pages = [
-    HomePage(),
+    HomePage(title: 'Home'),
   ];
 
   @override
@@ -23,7 +25,7 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
         leading: null,
         centerTitle: true,
         title: Image.asset(
-          'assets/images/logo.png',
+          'assets/icon/transparent.png',
           height: 40,
 
         ),

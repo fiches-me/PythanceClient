@@ -6,8 +6,8 @@ import 'dart:io';
 Future<dynamic> fetchWithHeaders(String url) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final cachedData = prefs.getString('cached_response_${url}') ?? "null";
-    final lastFetch = prefs.getInt('last_fetch_time_${url}') ?? 0;
+    final cachedData = prefs.getString('cached_response_$url') ?? "null";
+    final lastFetch = prefs.getInt('last_fetch_time_$url') ?? 0;
     bool isOffline = !(await hasNetworkConnection());
     
     if (isOffline || (cachedData != "null" && DateTime.now().millisecondsSinceEpoch - lastFetch < 300000)) {
@@ -31,8 +31,8 @@ Future<dynamic> fetchWithHeaders(String url) async {
 
     if (response.statusCode == 200) {
       final dynamic responseData = jsonDecode(response.body);
-      await prefs.setString('cached_response_${url}', response.body);
-      await prefs.setInt('last_fetch_time_${url}', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setString('cached_response_$url', response.body);
+      await prefs.setInt('last_fetch_time_$url', DateTime.now().millisecondsSinceEpoch);
       return responseData;
     } else if (response.statusCode == 418) {
       throw Exception('🔥 Boosters Désactivées.');
@@ -53,7 +53,7 @@ Future<dynamic> fetchWithHeaders(String url) async {
     }
   } catch (e) {
     // Handle errors
-    print('Error occurred: ${e}');
+    print('Error occurred: $e');
     final errorMessage = e.toString().replaceFirst('Exception: ', '');
     throw Exception(errorMessage);
   }
