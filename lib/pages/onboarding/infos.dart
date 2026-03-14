@@ -5,7 +5,7 @@ import 'dart:io';
 class OnboardingPersonalInfoPage extends StatefulWidget {
   final Function(String, String, File?) onNext;
 
-  OnboardingPersonalInfoPage({required this.onNext});
+  const OnboardingPersonalInfoPage({super.key, required this.onNext});
 
   @override
   _OnboardingPersonalInfoPageState createState() => _OnboardingPersonalInfoPageState();
@@ -30,9 +30,11 @@ class _OnboardingPersonalInfoPageState extends State<OnboardingPersonalInfoPage>
     return Scaffold(
       appBar: AppBar(title: Text('Personal Info')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
+            Text('Step 2: About you', style: TextStyle(fontSize: 24)),
+            SizedBox(height: 20),
             GestureDetector(
               onTap: _pickImage,
               child: CircleAvatar(
@@ -44,19 +46,20 @@ class _OnboardingPersonalInfoPageState extends State<OnboardingPersonalInfoPage>
             SizedBox(height: 20),
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'First Name', border: OutlineInputBorder()),
             ),
+            SizedBox(height: 10),
             TextField(
               controller: _lastNameController,
-              decoration: InputDecoration(labelText: 'Last Name'),
+              decoration: InputDecoration(labelText: 'Last Name', border: OutlineInputBorder()),
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => widget.onNext(
-                _nameController.text,
-                _lastNameController.text,
-                _profileImage,
-              ),
+              onPressed: () {
+                if (_nameController.text.isNotEmpty && _lastNameController.text.isNotEmpty) {
+                  widget.onNext(_nameController.text, _lastNameController.text, _profileImage);
+                }
+              },
               child: Text('Next'),
             ),
           ],

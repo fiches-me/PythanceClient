@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'pages/home.dart';
+import 'pages/account.dart';
+import 'pages/tools_usage.dart';
+import 'pages/add_plate.dart';
 
 class NavigationBarPage extends StatefulWidget {
   const NavigationBarPage({super.key});
@@ -12,49 +15,51 @@ class NavigationBarPage extends StatefulWidget {
 class _NavigationBarPageState extends State<NavigationBarPage> {
   int _currentIndex = 0;
 
-  // Liste des pages avec plusieurs widgets
   final List<Widget> _pages = [
-    HomePage(title: 'Home'),
+    const HomePage(),
+    const ToolsUsagePage(),
+    const AccountPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: null,
-        centerTitle: true,
-        title: Image.asset(
-          'assets/icon/transparent.png',
-          height: 40,
+    final colorScheme = Theme.of(context).colorScheme;
 
-        ),
-      ),
-      body: _pages[_currentIndex], // Affiche la page correspondant à l'onglet
+    return Scaffold(
+      body: _pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
-            _currentIndex = index; // Met à jour l'onglet sélectionné
+            _currentIndex = index;
           });
         },
-        destinations: [
+        destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Accueil',
           ),
           NavigationDestination(
-            icon: Icon(Icons.photo_album_outlined),
-            selectedIcon: Icon(Icons.photo_album),
-            label: 'Collection',
+            icon: Icon(Icons.kitchen_outlined),
+            selectedIcon: Icon(Icons.kitchen),
+            label: 'Ustensiles',
           ),
           NavigationDestination(
-            icon: Icon(Icons.account_circle_outlined),
-            selectedIcon: Icon(Icons.account_circle),
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
             label: 'Compte',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddPlatePage()),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

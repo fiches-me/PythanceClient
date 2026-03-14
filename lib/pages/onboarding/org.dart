@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../config.dart';
 
 class OnboardingGroupPage extends StatefulWidget {
-  final Function(String?) onFinish;
+  final Function(String?) onNext;
 
-  OnboardingGroupPage({required this.onFinish});
+  const OnboardingGroupPage({super.key, required this.onNext});
 
   @override
   _OnboardingGroupPageState createState() => _OnboardingGroupPageState();
@@ -11,31 +14,60 @@ class OnboardingGroupPage extends StatefulWidget {
 
 class _OnboardingGroupPageState extends State<OnboardingGroupPage> {
   final _groupCodeController = TextEditingController();
+  String? _errorMessage;
+  bool _isLoading = false;
+
+  Future<void> _checkAndProceed() async {
+    final code = _groupCodeController.text.trim();
+    if (code.isEmpty) {
+      widget.onNext(null);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.apiBaseUrl}/auth/verify-group'),
+        body: json.encode({'group_code': code}),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true || data['valid'] == true) {
+          widget.onNext(code);
+        } else {
+          setState(() => _errorMessage = 'Invalid group code.');
+        }
+      } else {
+        setState(() => _errorMessage = 'Failed to verify group.');
+      }
+    } catch (e) {
+      setState(() => _errorMessage = 'Error: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Join a Group')),
+      appBar: AppBar(title: const Text('Join a Group')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
+            const Text('Step 1: Join your group', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
             TextField(
               controller: _groupCodeController,
-              decoration: InputDecoration(labelText: 'Group Code (optional)'),
+              decoration: const InputDecoration(labelText: 'Group Code', border: OutlineInputBorder()),
             ),
-            SizedBox(height: 20),
-            Row(
+            if (_errorMessage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
+            const SizedBox(height: 20),
+            _isLoading ? const CircularProgressIndicator() : Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: () => widget.onFinish(_groupCodeController.text.isEmpty ? null : _groupCodeController.text),
-                  child: Text('Finish'),
-                ),
-                TextButton(
-                  onPressed: () => widget.onFinish(null),
-                  child: Text('Skip'),
-                ),
+                ElevatedButton(onPressed: _checkAndProceed, child: const Text('Next')),
               ],
             ),
           ],

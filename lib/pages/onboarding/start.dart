@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class OnboardingWelcomePage extends StatelessWidget {
   final VoidCallback onGetStarted;
 
-  OnboardingWelcomePage({required this.onGetStarted});
+  const OnboardingWelcomePage({super.key, required this.onGetStarted});
 
   @override
   Widget build(BuildContext context) {
