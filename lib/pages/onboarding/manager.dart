@@ -31,7 +31,7 @@ class _OnboardingFlowState extends State<OnboardingFlowManager> {
 
     try {
       final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/onboard'),
+        Uri.parse('${Config.apiBaseUrl}/auth/onboard/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',

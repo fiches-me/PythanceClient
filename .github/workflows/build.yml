@@ -36,8 +36,7 @@ jobs:
       - name: Build Android
         if: matrix.target == 'android'
         run: |
-          flutter build apk --debug
-          flutter build appbundle --debug
+          flutter build apk
 
       - name: Upload Android build artifacts
         if: matrix.target == 'android'

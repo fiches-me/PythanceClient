@@ -1,28 +1,49 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../navigation.dart';
 import '../onboarding/manager.dart';
 import '../../config.dart';
+import 'login/login_step.dart';
+import 'login/widgets/login_bottom_button.dart';
+import 'login/widgets/login_code_step.dart';
+import 'login/widgets/login_email_step.dart';
+import 'login/widgets/login_welcome_step.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
-  final List<TextEditingController> _codeControllers = List.generate(6, (index) => TextEditingController());
+  final List<TextEditingController> _codeControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
-  int _step = 0; // 0: Welcome, 1: Email, 2: Code
+  LoginStep _step = LoginStep.welcome;
   String? _errorMessage;
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    for (final controller in _codeControllers) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _sendEmail() async {
     final email = _emailController.text.trim();
@@ -31,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/login'),
+        Uri.parse('${Config.apiBaseUrl}/auth/login/'),
         body: json.encode({'email': email}),
         headers: {'Content-Type': 'application/json'},
       );
@@ -39,27 +60,38 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          if (!mounted) return;
           setState(() {
-            _step = 2;
+            _step = LoginStep.code;
             _errorMessage = null;
           });
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
             FocusScope.of(context).requestFocus(_focusNodes[0]);
           });
         } else {
+          if (!mounted) return;
           setState(() => _errorMessage = data['message']);
         }
       } else {
+        if (!mounted) return;
         setState(() => _errorMessage = 'Erreur serveur. Veuillez réessayer.');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _errorMessage = 'Erreur de connexion.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _verifyCode() async {
+    if (_isLoading) {
+      return;
+    }
+
     final email = _emailController.text.trim();
     final code = _codeControllers.map((c) => c.text).join();
     if (code.length != 6) {
@@ -69,8 +101,11 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
+      log('Verifying code: $code');
+      log('Email: $email');
+      log('API URL: ${Config.apiBaseUrl}/auth/verify/');
       final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/verify'),
+        Uri.parse('${Config.apiBaseUrl}/auth/verify/'),
         body: json.encode({'email': email, 'code': code}),
         headers: {'Content-Type': 'application/json'},
       );
@@ -83,20 +118,33 @@ class _LoginPageState extends State<LoginPage> {
           await prefs.setString('api_key', data['key']);
           if (!mounted) return;
           if (data['newuser'] == true) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const OnboardingFlowManager()));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OnboardingFlowManager(),
+              ),
+            );
           } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NavigationBarPage()));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const NavigationBarPage()),
+            );
           }
         } else {
+          if (!mounted) return;
           setState(() => _errorMessage = data['message']);
         }
       } else {
+        if (!mounted) return;
         setState(() => _errorMessage = 'Code incorrect.');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _errorMessage = 'Erreur de connexion.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -116,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     colorScheme.surface,
-                    colorScheme.surfaceVariant.withOpacity(0.4),
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   ],
                 ),
               ),
@@ -158,7 +206,7 @@ class _LoginPageState extends State<LoginPage> {
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Text(_errorMessage!, style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.w500)),
                     ),
-                  _buildBottomButton(),
+                  _buildBottomAction(),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -176,115 +224,44 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildStepContent() {
     switch (_step) {
-      case 0:
-        return Column(
-          key: const ValueKey(0),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Pythance', style: Theme.of(context).textTheme.displayMedium),
-            const SizedBox(height: 12),
-            Text(
-              'Cuisinez ensemble, gérez vos ustensiles et planifiez vos repas en toute simplicité.',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
+      case LoginStep.welcome:
+        return const LoginWelcomeStep();
+      case LoginStep.email:
+        return LoginEmailStep(emailController: _emailController);
+      case LoginStep.code:
+        return LoginCodeStep(
+          email: _emailController.text,
+          codeControllers: _codeControllers,
+          focusNodes: _focusNodes,
+          onCodeCompleted: _verifyCode,
         );
-      case 1:
-        return Column(
-          key: const ValueKey(1),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Votre email', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 12),
-            Text('Nous vous enverrons un code de connexion magique.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 32),
-            TextField(
-              controller: _emailController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'nom@exemple.com',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ],
-        );
-      case 2:
-        return Column(
-          key: const ValueKey(2),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Vérification', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 12),
-            Text('Entrez le code envoyé à ${_emailController.text}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (index) => SizedBox(
-                width: 48,
-                height: 56,
-                child: TextField(
-                  controller: _codeControllers[index],
-                  focusNode: _focusNodes[index],
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  maxLength: 1,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                  ),
-                  onChanged: (value) {
-                    if (value.isNotEmpty && index < 5) {
-                      FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-                    } else if (value.isEmpty && index > 0) {
-                      FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-                    }
-                    if (codeFull) _verifyCode();
-                  },
-                ),
-              )),
-            ),
-          ],
-        );
-      default:
-        return const SizedBox.shrink();
     }
   }
 
-  bool get codeFull => _codeControllers.every((c) => c.text.isNotEmpty);
-
-  Widget _buildBottomButton() {
+  Widget _buildBottomAction() {
     String text = "";
     VoidCallback? onPressed;
 
-    if (_step == 0) {
+    if (_step == LoginStep.welcome) {
       text = "Commencer";
-      onPressed = () => setState(() => _step = 1);
-    } else if (_step == 1) {
+      onPressed = () {
+        setState(() {
+          _errorMessage = null;
+          _step = LoginStep.email;
+        });
+      };
+    } else if (_step == LoginStep.email) {
       text = "Continuer";
       onPressed = _sendEmail;
-    } else if (_step == 2) {
+    } else if (_step == LoginStep.code) {
       text = "Vérifier";
       onPressed = _verifyCode;
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 64,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 2,
-        ),
-        onPressed: _isLoading ? null : onPressed,
-        child: Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      ),
+    return LoginBottomButton(
+      text: text,
+      isLoading: _isLoading,
+      onPressed: onPressed,
     );
   }
 }

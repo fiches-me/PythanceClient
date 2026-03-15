@@ -27,7 +27,7 @@ class _OnboardingGroupPageState extends State<OnboardingGroupPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/verify-group'),
+        Uri.parse('${Config.apiBaseUrl}/auth/verify-group/'),
         body: json.encode({'group_code': code}),
         headers: {'Content-Type': 'application/json'},
       );

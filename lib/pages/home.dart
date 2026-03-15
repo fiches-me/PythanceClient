@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
       final apiKey = prefs.getString('api_key') ?? '';
 
       final response = await http.get(
-        Uri.parse('${Config.apiBaseUrl}/plates/planned'),
+        Uri.parse('${Config.apiBaseUrl}/plates/planned/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
