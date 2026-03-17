@@ -6,6 +6,11 @@ on:
       - master
       - main
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
@@ -18,16 +23,39 @@ jobs:
             os: ubuntu-latest
           - target: ios
             os: macos-latest
+          - target: web
+            os: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ---------- CACHE ----------
+      - name: Cache Flutter SDK + Pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ runner.tool_cache }}/flutter
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      - name: Cache build outputs
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ matrix.target }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ matrix.target }}-
+
+      # ---------- FLUTTER ----------
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: 3.41.4
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -35,8 +63,7 @@ jobs:
       # ---------- ANDROID ----------
       - name: Build Android
         if: matrix.target == 'android'
-        run: |
-          flutter build apk
+        run: flutter build apk
 
       - name: Upload Android build artifacts
         if: matrix.target == 'android'
@@ -58,3 +85,25 @@ jobs:
         with:
           name: ios-builds
           path: build/ios/ipa/*.ipa
+
+      # ---------- WEB ----------
+      - name: Build Web
+        if: matrix.target == 'web'
+        run: flutter build web --release
+
+      - name: Upload Web artifact (for Pages)
+        if: matrix.target == 'web'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  # ---------- DEPLOY TO GITHUB PAGES ----------
+  deploy:
+    name: Deploy Web to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy
+        uses: actions/deploy-pages@v4
