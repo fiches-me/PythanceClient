@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import '../../requests.dart';
 import '../../config.dart';
 
 class OnboardingGroupPage extends StatefulWidget {
@@ -26,13 +25,9 @@ class _OnboardingGroupPageState extends State<OnboardingGroupPage> {
 
     setState(() => _isLoading = true);
     try {
-      final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/verify-group/'),
-        body: json.encode({'group_code': code}),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      final url = '${Config.apiBaseUrl}/auth/verify-group/';
+      final data = await postWithHeaders(url, {'group_code': code}, requireAuth: false);
+      if (data is Map<String, dynamic>) {
         if (data['success'] == true || data['valid'] == true) {
           widget.onNext(code);
         } else {

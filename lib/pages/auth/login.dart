@@ -1,9 +1,7 @@
 import 'dart:developer';
-
+import '../../requests.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../navigation.dart';
 import '../onboarding/manager.dart';
@@ -28,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     (index) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  final _storage = const FlutterSecureStorage();
 
   LoginStep _step = LoginStep.welcome;
   String? _errorMessage;
@@ -51,16 +50,13 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
-      final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/login/'),
-        body: json.encode({'email': email}),
-        headers: {'Content-Type': 'application/json'},
-      );
+      final url = '${Config.apiBaseUrl}/auth/login/';
+      final data = await postWithHeaders(url, {'email': email}, requireAuth: false);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        log(data.toString());
         if (data['success'] == true) {
-          if (!mounted) return;
           setState(() {
             _step = LoginStep.code;
             _errorMessage = null;
@@ -69,12 +65,19 @@ class _LoginPageState extends State<LoginPage> {
             if (!mounted) return;
             FocusScope.of(context).requestFocus(_focusNodes[0]);
           });
+        } else if (data['timeout'] == true) {
+          setState(() {
+            _step = LoginStep.code;
+            _errorMessage = data['message'];
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            FocusScope.of(context).requestFocus(_focusNodes[0]);
+          });
         } else {
-          if (!mounted) return;
           setState(() => _errorMessage = data['message']);
         }
       } else {
-        if (!mounted) return;
         setState(() => _errorMessage = 'Erreur serveur. Veuillez réessayer.');
       }
     } catch (e) {
@@ -104,39 +107,33 @@ class _LoginPageState extends State<LoginPage> {
       log('Verifying code: $code');
       log('Email: $email');
       log('API URL: ${Config.apiBaseUrl}/auth/verify/');
-      final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/verify/'),
-        body: json.encode({'email': email, 'code': code}),
-        headers: {'Content-Type': 'application/json'},
-      );
+      final url = '${Config.apiBaseUrl}/auth/verify/';
+      final data = await postWithHeaders(url, {'email': email, 'code': code}, requireAuth: false);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('email', email);
-          await prefs.setString('api_key', data['key']);
-          if (!mounted) return;
-          if (data['newuser'] == true) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const OnboardingFlowManager(),
-              ),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const NavigationBarPage()),
-            );
-          }
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        await _storage.write(key: 'email', value: email);
+        // The backend returns token under 'key' - keep that behavior but store as 'api_token'
+        log(data.toString());
+        if (data.containsKey('key')) {
+          await _storage.write(key: 'api_token', value: data['key']);
+        }
+        if (!mounted) return;
+        if (data['newuser'] == true) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const OnboardingFlowManager(),
+            ),
+          );
         } else {
-          if (!mounted) return;
-          setState(() => _errorMessage = data['message']);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const NavigationBarPage()),
+          );
         }
       } else {
         if (!mounted) return;
-        setState(() => _errorMessage = 'Code incorrect.');
+        setState(() => _errorMessage = data is Map<String, dynamic> ? data['message'] : 'Code incorrect.');
       }
     } catch (e) {
       if (!mounted) return;

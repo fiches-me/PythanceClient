@@ -42,7 +42,7 @@ class ToolsUsagePage extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
               title: Text(
-                'Ustensiles',
+                'Mes Ustensiles',
                 style: TextStyle(
                   color: colorScheme.onSurface,
                   fontFamily: 'Unbounded',

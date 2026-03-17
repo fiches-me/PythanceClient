@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import '../requests.dart';
 import '../config.dart';
 
 class HomePage extends StatefulWidget {
@@ -29,28 +27,18 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final apiKey = prefs.getString('api_key') ?? '';
-
-      final response = await http.get(
-        Uri.parse('${Config.apiBaseUrl}/plates/planned/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      final data = await fetchWithHeaders('${Config.apiBaseUrl}/plates/');
+      if (data is Map<String, dynamic>) {
         if (data['success'] == true) {
-          setState(() {
-            _plates = data['plates'] ?? [];
-          });
+          setState(() => _plates = data['plates'] ?? []);
         } else {
           setState(() => _errorMessage = data['message'] ?? 'Failed to load plates');
         }
+      } else if (data is List) {
+        // Some backends may directly return a list
+        setState(() => _plates = data);
       } else {
-        setState(() => _errorMessage = 'Server error. Could not fetch plates.');
+        setState(() => _errorMessage = 'Unexpected response format');
       }
     } catch (e) {
       // In case there is no API yet, show some placeholder data, but we still capture the error

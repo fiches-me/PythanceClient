@@ -25,6 +25,7 @@ dependencies:
   dynamic_color: any
   intl: any
   flutter_svg: ^2.0.7
+  flutter_gravatar: any
 
 dev_dependencies:
   flutter_test:
@@ -32,6 +33,20 @@ dev_dependencies:
   build_runner: ^2.4.0
   build_web_compilers: ^4.0.4
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/logo.svg"
+  min_sdk_android: 21
+  adaptive_icon_foreground: "assets/icon/logo.svg"
+  adaptive_icon_background: "#FFFFFF"
+  web:
+    generate: true
+    image_path: "assets/icon/logo.svg"
+    background_color: "#FFFFFF"
+    theme_color: "#FCC600"
 
 flutter:
   uses-material-design: true

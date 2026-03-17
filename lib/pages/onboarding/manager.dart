@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../../requests.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:io';
 
 import 'infos.dart';
@@ -27,25 +26,19 @@ class _OnboardingFlowState extends State<OnboardingFlowManager> {
   Future<void> _submitOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email') ?? '';
-    final apiKey = prefs.getString('api_key') ?? '';
 
     try {
-      final response = await http.post(
-        Uri.parse('${Config.apiBaseUrl}/auth/onboard/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: json.encode({
-          'email': email,
-          'group_code': _groupCode,
-          'first_name': _name,
-          'last_name': _lastName,
-          'tools': _tools,
-        }),
-      );
+      final url = '${Config.apiBaseUrl}/auth/onboard/';
+      final data = await postWithHeaders(url, {
+        'email': email,
+        'group_code': _groupCode,
+        'first_name': _name,
+        'last_name': _lastName,
+        'tools': _tools,
+      });
 
-      if (response.statusCode == 200) {
+      // Assuming success will return a map with success:true
+      if (data is Map<String, dynamic> && (data['success'] == true)) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NavigationBarPage()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to complete onboarding')));

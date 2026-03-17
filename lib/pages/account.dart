@@ -5,6 +5,15 @@ import 'auth/login.dart';
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
 
+  Future<void> _code(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
+
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -14,8 +23,11 @@ class AccountPage extends StatelessWidget {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -27,17 +39,32 @@ class AccountPage extends StatelessWidget {
           SizedBox(height: 20),
           Text(
             'Mon Compte',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontFamily: 'Unbounded', fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            'Quoi écrire ? Bonne question...',
+            style: TextStyle(fontSize: 20),
           ),
           SizedBox(height: 30),
+          ElevatedButton.icon(
+            onPressed: () => _code(context),
+            icon: Icon(Icons.local_activity),
+            label: Text('Code Secret'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.inversePrimary,
+              foregroundColor: colorScheme.primary,
+            ),
+
+          ),
           ElevatedButton.icon(
             onPressed: () => _logout(context),
             icon: Icon(Icons.logout),
             label: Text('Se déconnecter'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[100],
-              foregroundColor: Colors.red[900],
+              backgroundColor: colorScheme.errorContainer,
+              foregroundColor: colorScheme.error,
             ),
+
           )
         ],
       ),

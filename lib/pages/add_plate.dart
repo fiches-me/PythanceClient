@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../requests.dart';
 
 class AddPlatePage extends StatefulWidget {
   const AddPlatePage({super.key});
@@ -37,9 +38,47 @@ class _AddPlatePageState extends State<AddPlatePage> {
     }
   }
 
-  void _savePlate() {
-    // API logic will go here
-    Navigator.pop(context);
+  bool _isSubmitting = false;
+
+  Future<void> _savePlate() async {
+    final name = _nameController.text.trim();
+
+    // Basic validations
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le nom du plat est requis')));
+      return;
+    }
+
+    final today = DateTime.now();
+    final selectedDateOnly = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    if (selectedDateOnly.isBefore(todayOnly)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La date sélectionnée est dans le passé')));
+      return;
+    }
+
+    if (_personCount < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le nombre de personnes doit être au moins 2')));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await sendPlate(
+        name: name,
+        date: _selectedDate,
+        moment: _selectedMoment,
+        personCount: _personCount,
+        tools: _selectedTools,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plat planifié avec succès')));
+      Navigator.pop(context, result);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur lors de l\'envoi: ${e.toString()}')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -48,16 +87,13 @@ class _AddPlatePageState extends State<AddPlatePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouveau Plat', style: TextStyle(fontFamily: 'Unbounded', fontSize: 18)),
+        title: Text('Nouveau Plat', style: TextStyle(fontFamily: 'Unbounded', fontSize: 20, color: colorScheme.primary)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Détails du repas', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Unbounded', color: colorScheme.primary)),
-            const SizedBox(height: 24),
-            
             // Name
             TextField(
               controller: _nameController,
@@ -69,7 +105,7 @@ class _AddPlatePageState extends State<AddPlatePage> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Date & Moment
             Row(
@@ -90,7 +126,7 @@ class _AddPlatePageState extends State<AddPlatePage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedMoment,
+                    initialValue: _selectedMoment,
                     decoration: InputDecoration(
                       labelText: 'Moment',
                       prefixIcon: const Icon(Icons.access_time),
@@ -109,7 +145,8 @@ class _AddPlatePageState extends State<AddPlatePage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                IconButton.filledTonal(onPressed: () => setState(() => _personCount > 1 ? _personCount-- : null), icon: const Icon(Icons.remove)),
+                IconButton.filledTonal(
+                    onPressed: _personCount > 2 ? () => setState(() => _personCount--) : null, icon: const Icon(Icons.remove)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text('$_personCount', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
@@ -143,17 +180,21 @@ class _AddPlatePageState extends State<AddPlatePage> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 12),
 
             SizedBox(
               width: double.infinity,
               height: 56,
               child: FilledButton(
-                onPressed: _savePlate,
+                onPressed: _isSubmitting ? null : _savePlate,
                 style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: const Text('Planifier le repas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: _isSubmitting
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Planifier le repas', style: TextStyle(fontFamily: 'Unbounded', fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
