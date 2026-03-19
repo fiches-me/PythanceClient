@@ -17,7 +17,7 @@ Future<dynamic> fetchWithHeaders(String url) async {
     bool isOffline = !(await hasNetworkConnection());
     
     if (isOffline || (cachedData != "null" && DateTime.now().millisecondsSinceEpoch - lastFetch < 300000)) {
-      print("Use cached data");
+      log("Use cached data for $url");
       return jsonDecode(cachedData); // Use cached data
     }
 
@@ -73,7 +73,7 @@ Future<dynamic> sendPlate({
   required int personCount,
   required List<String> tools,
 }) async {
-  final url = '${Config.apiBaseUrl}/plates';
+  final url = '${Config.apiBaseUrl}/plates/';
   final body = {
     'name': name,
     'date': DateFormat('yyyy-MM-dd').format(date),

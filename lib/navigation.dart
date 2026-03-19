@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/home.dart';
 import 'pages/account.dart';
 import 'pages/tools_usage.dart';
+import 'pages/search.dart';
 import 'pages/add_plate.dart';
 
 class NavigationBarPage extends StatefulWidget {
@@ -19,10 +20,17 @@ class NavigationBarPage extends StatefulWidget {
 class _NavigationBarPageState extends State<NavigationBarPage> {
   int _currentIndex = 0;
 
+  // Track the last tapped destination index in the NavigationBar (0..n-1).
+  // We keep this separate from _currentIndex because the middle destination
+  // (index 2) is used to open the Add page and is not one of the pages in
+  // `_pages`.
+  int _lastSelectedDestination = 0;
+
   String? _gravatarUrl;
 
   final List<Widget> _pages = [
     const HomePage(),
+    const SearchPage(),
     const ToolsUsagePage(),
     const AccountPage(),
   ];
@@ -78,10 +86,34 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        // Use the last tapped destination index for visual selection. The
+        // logical page index (_currentIndex) maps to destinations as follows:
+        // dest 0 -> page 0, dest 1 -> page 1, dest 2 -> ADD (not a page),
+        // dest 3 -> page 2 (if you had a separate page), dest 4 -> page 2
+        selectedIndex: _lastSelectedDestination,
         onDestinationSelected: (index) {
+          // If the center destination (index 2) is tapped, open the Add page
+          // without changing the selected content page.
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddPlatePage()),
+            );
+            return;
+          }
+
           setState(() {
-            _currentIndex = index;
+            // remember which destination was tapped so the UI highlights it
+            _lastSelectedDestination = index;
+
+            // Map destination indices to page indices. Because destination
+            // list contains an extra center action at index 2 we shift the
+            // indices after it by -1 to match our `_pages` array.
+            if (index < 2) {
+              _currentIndex = index;
+            } else {
+              _currentIndex = index - 1;
+            }
           });
         },
         // destinations ne peuvent pas être const car elles utilisent des valeurs runtime
@@ -90,6 +122,38 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Accueil',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.search),
+            selectedIcon: Icon(Icons.search_outlined),
+            label: 'Recherche',
+          ),
+          NavigationDestination(
+            icon: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+            selectedIcon: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromRGBO(0, 0, 0, 0.2),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+            label: 'Ajouter',
           ),
           const NavigationDestination(
             icon: Icon(Icons.kitchen_outlined),
@@ -102,15 +166,6 @@ class _NavigationBarPageState extends State<NavigationBarPage> {
             label: 'Compte',
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddPlatePage()),
-          );
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

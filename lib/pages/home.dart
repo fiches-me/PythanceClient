@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
               child: CustomScrollView(
                 slivers: [
                   SliverAppBar(
-                    expandedHeight: 120.0,
+                    expandedHeight: 30.0,
                     floating: false,
                     pinned: true,
                     flexibleSpace: FlexibleSpaceBar(
